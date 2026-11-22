@@ -8,9 +8,9 @@
 static const NSUInteger kDropDepth = 3;
 static const NSUInteger kDropTwoDepth = 6;
 static const double kDropInterval = 0.5;     // after dropping a tier, wait this long before looking again (even at a lower bitrate the backlog takes a while to drain)
-static const double kRaiseSeconds = 8;
+static const double kRaiseSeconds = 12;    // was 8; raised to reduce bounce on marginal links (#8); slow recovery uses 15
 static const double kProbeFailSeconds = 3;
-static const double kProbeHoldSeconds = 30;
+static const double kProbeHoldSeconds = 60;  // was 30; raised to match slow-recovery's 60 s — the probe must hold twice as long to be confident (#8)
 static const double kBackoffInitial = 30;
 static const double kBackoffMax = 300;
 
@@ -18,7 +18,7 @@ static const double kBackoffMax = 300;
 // much longer after a failed attempt, so the bitrate does not bounce between two tiers under 2.4 GHz radio coexistence
 static BOOL UseSlowRecovery(void) { return [BBExperiments shared].slowABR || A2DPWiFiOn24GHzCached(); }
 static double RaiseSeconds(void) { return UseSlowRecovery() ? 15 : kRaiseSeconds; }
-static double ProbeHoldSeconds(void) { return UseSlowRecovery() ? 60 : kProbeHoldSeconds; }
+static double ProbeHoldSeconds(void) { return UseSlowRecovery() ? 90 : kProbeHoldSeconds; }  // slow-recovery: 90 s (was 60)
 static double BackoffInitial(void) { return UseSlowRecovery() ? 120 : kBackoffInitial; }
 static double BackoffMax(void) { return UseSlowRecovery() ? 600 : kBackoffMax; }
 
@@ -170,8 +170,13 @@ static os_unfair_lock gGuardLock = OS_UNFAIR_LOCK_INIT;
     if (_probeTier >= 0 && _clock - _probeStart >= ProbeHoldSeconds()) {
         // Failing at tier A, dropping lower, then settling at a tier below A does not show that A can hold, so do not reset (same as ldac_a2dp.c guard_after_abr)
         if (_failedKbps <= 0 || _tierKbps[_probeTier].doubleValue + 0.5 >= _failedKbps) {
+            // The probe held — reset backoff so a future failure starts fresh rather than doubling indefinitely.
+            // Keep _failedKbps as soft memory: if the same tier fails again shortly after, the backoff doubling
+            // resumes from kBackoffInitial rather than 0, which prevents the bounce pattern (#8) where a marginal
+            // link repeatedly passes the hold period then immediately fails again.
             _backoff = BackoffInitial();
-            _failedKbps = 0;
+            // Do NOT clear _failedKbps here: keep the soft memory so a future failure at the same tier is recognised
+            // and uses backoff immediately instead of treating the tier as pristine.
         }
         _probeTier = -1;
     }

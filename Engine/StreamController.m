@@ -14,6 +14,7 @@
     LinkStatus _sessionStatus;  // Last status the current session reported
     BOOL _releaseNextLink;      // The last session's headphones left (powered off) with the link still up
     uint64_t _launchTicks;
+    uint64_t _lastDisconnectTicks;  // When Blue Bloom last intentionally disconnected (for Focal Bathys-style recovery cooldown)
 }
 
 - (instancetype)initWithDevice:(IOBluetoothDevice *)device virtualDevice:(BOOL)virtualDevice {
@@ -71,6 +72,20 @@
     A2DPSource *session = [[A2DPSource alloc] initWithDevice:_device mode:SourceModePlay rate:0 file:nil seconds:0 systemAudio:!_virtualDevice];
     session.useVirtualDevice = _virtualDevice;
     session.waitForLink = !requested;
+    // If the user asked to connect and we recently disconnected, let the headphones recover before paging.
+    // Some headphones (e.g. Focal Bathys) take 20–35 s to become reachable after a Blue Bloom-initiated disconnect;
+    // paging during that window wastes kLinkWaitTimeout seconds only to fail. We skip the delay if more than
+    // kPostDisconnectCooldownSeconds have already elapsed since the disconnect (or if no disconnect was recorded)
+    static const double kPostDisconnectCooldownSeconds = 30.0;
+    if (requested && _lastDisconnectTicks) {
+        double elapsed = BBTicksToSeconds(mach_absolute_time() - _lastDisconnectTicks);
+        double remaining = kPostDisconnectCooldownSeconds - elapsed;
+        if (remaining > 1.0) {
+            BBLog(@"Within %.0f s of a disconnect (%.0f s elapsed): some headphones (e.g. Focal Bathys) take 20–35 s to recover; "
+                  @"delaying the first page by %.0f s", kPostDisconnectCooldownSeconds, elapsed, remaining);
+            session.pageDelay = remaining;
+        }
+    }
     session.releaseLingeringLink = !requested && _releaseNextLink;
     _releaseNextLink = NO;
     _launchTicks = mach_absolute_time();
@@ -147,6 +162,15 @@
     else if (_sessionStatus == LinkStatusWaitingHeadset) _outcome = LinkStatusWaitingHeadset;
     else _outcome = LinkStatusFailed;
     _releaseNextLink = ended.headphonesLeft;
+    // Track when Blue Bloom (not the headphones) initiated the disconnect, so the next connectNow can delay its first page
+    // while the headphones recover their Bluetooth stack. Some headphones (e.g. Focal Bathys) take 20–35 s to become reachable
+    // again after a Blue Bloom-initiated disconnect; paging during that window just wastes 20 s and returns failure
+    BOOL weDisconnected = !ended.headphonesLeft
+        && (streamed || _sessionStatus == LinkStatusConnecting || _sessionStatus == LinkStatusIdle)
+        && exitCode != SourceExitRetryNow
+        && exitCode != SourceExitStallRecovery
+        && exitCode != SourceExitHandedToSystem;
+    if (weDisconnected) _lastDisconnectTicks = mach_absolute_time();
     BBLog(@"Session ended (code %d), waiting for the headphones to connect by themselves", exitCode);
     // A waiting session that ended without streaming within 2 s: wait as long before the next, so nothing can cycle quickly
     if (ended.waitForLink && !streamed && BBTicksToSeconds(mach_absolute_time() - _launchTicks) < 2) {

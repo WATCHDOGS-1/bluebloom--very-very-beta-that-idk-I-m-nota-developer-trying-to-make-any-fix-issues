@@ -469,7 +469,7 @@ NSString *A2DPDeviceIdentity(IOBluetoothDevice *device) {
     dispatch_source_set_timer(_raceTimer, DISPATCH_TIME_NOW, (uint64_t)(kRaceInterval * NSEC_PER_SEC), NSEC_PER_MSEC);
     dispatch_source_set_event_handler(_raceTimer, ^{ [weakSelf raceTick]; });
     dispatch_resume(_raceTimer);
-    [self startRoundPagingAfter:_waitForLink ? -1 : 0];
+    [self startRoundPagingAfter:_waitForLink ? -1 : _pageDelay];
 }
 
 // The only chance to grab is while macOS is setting up A2DP (just after the link comes up, or colliding with macOS opening

@@ -67,6 +67,9 @@ NSString *A2DPDeviceIdentity(IOBluetoothDevice *device);
 // headphones stay connected to macOS. (Bathys keeps the link through a power cycle and reconnects A2DP on it to macOS; the
 // user takes it over with connectNow)
 @property (nonatomic) BOOL waitForLink;
+// Seconds to wait before the first page when waitForLink is NO; 0 = page immediately. Used to defer the first connection
+// attempt while the headphones recover their Bluetooth stack after a recent disconnect (e.g. Focal Bathys: 20–35 s)
+@property (nonatomic) double pageDelay;
 // With waitForLink: if the link is up when the session starts, release it once (unless macOS has the headphones' audio); set
 // after a session whose headphones left (headphonesLeft), since bluetoothd keeps that link up
 @property (nonatomic) BOOL releaseLingeringLink;

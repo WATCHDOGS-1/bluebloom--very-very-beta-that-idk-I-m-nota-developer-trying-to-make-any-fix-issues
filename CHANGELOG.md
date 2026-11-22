@@ -2,6 +2,20 @@
 
 All notable changes to Blue Bloom are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/). Versions before 1.0 are pre-releases.
 
+## [Unreleased]
+
+### Fixed
+
+- With LDAC (and other codecs using adaptive bitrate), the Adaptive mode no longer bounces back and forth between two bitrate tiers on marginal links (#8). The probe hold period (how long a step-up must sustain before being accepted) is extended from 30 s to 60 s on 5 GHz (and from 60 s to 90 s on 2.4 GHz), and after a successful probe a soft memory of the previously-failed tier is kept: if the link fails at the same tier again, the backoff timer starts immediately at its previous value instead of resetting to zero, preventing repeated rapid step-up/step-down cycles. The minimum wait before stepping up is also extended from 8 s to 12 s (slow recovery: 15 s).
+- After Blue Bloom disconnects headphones that take 20–35 seconds to recover their Bluetooth stack (observed with Focal Bathys), clicking Connect within that window no longer fails after a 20-second wait. Blue Bloom now records when it initiated the disconnect and, on the next connect request, delays the first page by the remaining recovery time (up to 30 s), then connects normally.
+
+### Known issues
+
+- The app is not signed with an Apple Developer ID or notarized. macOS blocks it the first time; allow it in System Settings › Privacy & Security. After each update macOS asks for Bluetooth access again.
+- Connecting was tested on macOS 27 with Focal Bathys and Sony WH-1000XM4 headphones; other headphones may behave differently (#2).
+- While Blue Bloom is connected, other apps can't use the headphones' microphone.
+- On Macs with shared Wi-Fi and Bluetooth radios, macOS AWDL discovery (AirDrop/AirPlay) and Bluetooth scans can still cause dropouts unless "Pause AirDrop and AirPlay while streaming" is enabled in Settings › Advanced, and System Settings › Bluetooth still runs Classic inquiry while open (#4, #9).
+
 ## [1.1.0] - 2026-11-20
 
 This version updates the Blue Bloom audio device. Blue Bloom asks to update it after you open the new version, which needs an administrator password.
@@ -33,7 +47,6 @@ This version updates the Blue Bloom audio device. Blue Bloom asks to update it a
 - The app is not signed with an Apple Developer ID or notarized. macOS blocks it the first time; allow it in System Settings › Privacy & Security. After each update macOS asks for Bluetooth access again.
 - Connecting was tested on macOS 27 with Focal Bathys and Sony WH-1000XM4 headphones; other headphones may behave differently (#2).
 - While Blue Bloom is connected, other apps can't use the headphones' microphone.
-- After Blue Bloom disconnects them, some headphones (observed with Focal Bathys) can't be reached for 20 to 35 seconds.
 - On Macs with shared Wi-Fi and Bluetooth radios, macOS AWDL discovery (AirDrop/AirPlay) and Bluetooth scans can still cause dropouts unless "Pause AirDrop and AirPlay while streaming" is enabled in Settings › Advanced, and System Settings › Bluetooth still runs Classic inquiry while open (#4, #9).
 - With LDAC, Adaptive can switch back and forth between two bitrates on some headphones (#8).
 

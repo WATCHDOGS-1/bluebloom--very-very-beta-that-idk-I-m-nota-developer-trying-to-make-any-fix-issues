@@ -2,11 +2,14 @@
   <img src="docs/images/icon.png" width="128" height="128" alt="Blue Bloom icon">
 </p>
 
-<h1 align="center">Blue Bloom</h1>
+<h1 align="center">Blue Bloom Alpha</h1>
 
-<p align="center">High-quality Bluetooth audio for your Mac</p>
+<p align="center">High-quality Bluetooth audio for your Mac — community-patched alpha build</p>
 
 <p align="center"><b>English</b> · <a href="README.zh-Hans.md">简体中文</a></p>
+
+> [!NOTE]
+> **This is Blue Bloom Alpha** — a community fork of [Blue Bloom](https://github.com/jonathanlu98/bluebloom) with additional bug fixes applied on top of v1.1.0. It is an alpha-quality build: use it at your own risk, and expect rough edges. The original project, its issues tracker and releases live at the upstream repo linked above.
 
 Blue Bloom is a menu bar app that streams your Mac's audio to Bluetooth headphones with the best codec they support: **LDAC, aptX HD, aptX, AAC or SBC**. On its own, macOS only uses AAC or SBC.
 
@@ -16,6 +19,15 @@ Blue Bloom is a menu bar app that streams your Mac's audio to Bluetooth headphon
     <img src="docs/images/panel-light.png" width="348" alt="The Blue Bloom menu bar panel streaming LDAC at 96 kHz / 24-bit">
   </picture>
 </p>
+
+## What's fixed in this alpha
+
+These fixes are applied on top of Blue Bloom v1.1.0 and are not yet in the upstream release:
+
+- **LDAC Adaptive bitrate no longer bounces** between two bitrate tiers on marginal links. The probe hold period is doubled (30 → 60 s on 5 GHz, 60 → 90 s on 2.4 GHz), the minimum raise wait is extended (8 → 12 s), and a soft memory of previously-failed tiers prevents the backoff timer from resetting to zero on re-failure.
+- **Focal Bathys 20–35 s reconnect delay is handled gracefully.** After Blue Bloom disconnects headphones that need time to recover their Bluetooth stack, clicking Connect no longer fails with a 20-second timeout. Blue Bloom now tracks when it initiated the disconnect and delays the first page by the remaining recovery time (up to 30 s), then connects normally.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full details.
 
 ## Features
 
@@ -48,7 +60,7 @@ Blue Bloom is a menu bar app that streams your Mac's audio to Bluetooth headphon
 
 ### Download
 
-1. Download `BlueBloom-<version>.dmg` from [Releases](https://github.com/jonathanlu98/bluebloom/releases), open it and drag Blue Bloom to Applications.
+1. Download `BlueBloom-<version>.dmg` from [Releases](https://github.com/WATCHDOGS-1/bluebloom--very-very-beta-that-idk-I-m-nota-developer-trying-to-make-any-fix-issues/releases), open it and drag Blue Bloom to Applications.
 2. Open Blue Bloom. It isn't signed with an Apple Developer ID yet, so macOS blocks it the first time: go to **System Settings › Privacy & Security** and click **Open Anyway**.
 3. Allow Bluetooth access, read the first-run notice, and install the Blue Bloom audio device when asked. This needs an administrator password once.
 
